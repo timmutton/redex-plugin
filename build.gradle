@@ -1,0 +1,79 @@
+buildscript {
+    ext {
+        kotlinVersion = '1.0.1-1'
+    }
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+    }
+}
+
+apply plugin: 'idea'
+apply plugin: 'kotlin'
+apply plugin: 'maven'
+apply plugin: 'com.jfrog.bintray'
+
+group = "au.com.timmutton"
+version = "1.1.0"
+
+dependencies {
+    repositories {
+        mavenCentral()
+    }
+
+    compile gradleApi()
+    compile 'com.android.tools.build:gradle:2.0.0'
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    compile 'com.google.code.gson:gson:2.4'
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.10'
+    distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
+}
+
+task sourcesJar(type: Jar) {
+    description = 'An archive of the source code for Maven Central'
+    from sourceSets.main.kotlin
+    classifier = 'sources'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+// Bintray
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+
+    pkg {
+        repo = 'maven'
+        name = 'redex'
+        desc = 'A gradle plugin that allows you to use the Redex tool as part of your build process'
+        websiteUrl = 'https://github.com/timmutton/redex-plugin/'
+        vcsUrl = 'https://github.com/outware/redex-plugin.git'
+        licenses = ["MIT"]
+        publicDownloadNumbers = true
+        publish = true
+    }
+}
+
+bintrayUpload.dependsOn(install)
+install.dependsOn(build)
