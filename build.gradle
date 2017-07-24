@@ -20,7 +20,7 @@ apply plugin: 'maven'
 apply plugin: 'com.jfrog.bintray'
 
 group = "au.com.timmutton"
-version = "1.1.0"
+version = "1.2.0"
 
 dependencies {
     repositories {

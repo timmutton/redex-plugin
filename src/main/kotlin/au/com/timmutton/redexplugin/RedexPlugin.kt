@@ -6,7 +6,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.StopExecutionException
 
-class RedexPlugin() : Plugin<Project> {
+class RedexPlugin : Plugin<Project> {
 	override fun apply(project: Project) {
 		project.extensions.create("redex", RedexPluginExtension::class.java)
 
