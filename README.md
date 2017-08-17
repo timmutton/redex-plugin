@@ -14,7 +14,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.0.0'
-        classpath 'au.com.timmutton:redex:1.1.0'
+        classpath 'au.com.timmutton:redex:1.2.0'
     }
 }
 
