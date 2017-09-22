@@ -17,7 +17,8 @@ class RedexPlugin : Plugin<Project> {
 
             val android = project.extensions.getByType(AppExtension::class.java)
 
-            RedexTask.passes =  project.extensions.getByType(RedexPluginExtension::class.java).passes
+            RedexTask.configFilePath = project.extensions.getByType(RedexPluginExtension::class.java).configFilePath
+            RedexTask.passes = project.extensions.getByType(RedexPluginExtension::class.java).passes
             RedexTask.sdkDirectory = android.sdkDirectory.toString()
 
             for(variant in android.applicationVariants) {
