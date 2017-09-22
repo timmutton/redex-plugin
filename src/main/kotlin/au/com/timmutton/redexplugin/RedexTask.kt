@@ -49,6 +49,11 @@ open class RedexTask: Exec() {
         outputFile = File(output.outputFile.toString().replace(".apk", "-redex.apk"))
 
         mappingFile = variant.mappingFile
+
+        if (passes != null && configFilePath != null) {
+            throw IllegalArgumentException(
+                "Cannot specify both passes and configFilePath");
+        }
     }
 
     override fun exec() {
@@ -56,7 +61,6 @@ open class RedexTask: Exec() {
             environment("ANDROID_SDK", sdkDirectory)
         }
 
-        var has_config = false
         passes?.apply {
             if (passes!!.size > 0) {
                 val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(passes!!)))
@@ -66,23 +70,17 @@ open class RedexTask: Exec() {
                 val configString = Gson().toJson(redexConfig)
                 writer.write(configString.substring(1, configString.length - 1).replace("\\", ""))
                 writer.close()
-                has_config = true
                 args("-c", configFile.absolutePath)
             }
         }
 
         configFilePath?.apply {
-            if (has_config) {
-                throw IllegalArgumentException(
-                    "Cannot specify both passes and configFilePath");
-            }
             val configFile = File(project.projectDir, configFilePath)
             if (!configFile.exists()) {
                 throw FileNotFoundException(
                     "Could not find Redex config file at path: " +
                     configFile.absolutePath)
             }
-            has_config = true
             args("-c", configFile.absolutePath)
         }
 
