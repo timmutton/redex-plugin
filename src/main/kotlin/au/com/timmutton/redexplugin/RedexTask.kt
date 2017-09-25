@@ -11,7 +11,9 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputFile
 import org.gradle.process.internal.ExecException
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileWriter
+import java.lang.IllegalArgumentException
 
 /**
  * @author timmutton
@@ -22,6 +24,7 @@ open class RedexTask: Exec() {
 
         var passes: Array<String>? = null
         var sdkDirectory: String? = null
+        var configFilePath : String? = null
     }
 
     private var signingConfig: SigningConfig? = null
@@ -46,6 +49,11 @@ open class RedexTask: Exec() {
         outputFile = File(output.outputFile.toString().replace(".apk", "-redex.apk"))
 
         mappingFile = variant.mappingFile
+
+        if (passes != null && configFilePath != null) {
+            throw IllegalArgumentException(
+                "Cannot specify both passes and configFilePath");
+        }
     }
 
     override fun exec() {
@@ -64,6 +72,16 @@ open class RedexTask: Exec() {
                 writer.close()
                 args("-c", configFile.absolutePath)
             }
+        }
+
+        configFilePath?.apply {
+            val configFile = File(project.projectDir, configFilePath)
+            if (!configFile.exists()) {
+                throw FileNotFoundException(
+                    "Could not find Redex config file at path: " +
+                    configFile.absolutePath)
+            }
+            args("-c", configFile.absolutePath)
         }
 
         signingConfig?.apply {
