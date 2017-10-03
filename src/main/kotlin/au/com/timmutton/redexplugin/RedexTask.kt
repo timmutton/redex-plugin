@@ -37,6 +37,7 @@ open class RedexTask: Exec() {
 
     private var mappingFile: File? = null
 
+    @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
     fun initialise(variant: ApplicationVariant) {
         group = TASK_GROUP
@@ -44,9 +45,11 @@ open class RedexTask: Exec() {
         signingConfig = variant.buildType.signingConfig
         mustRunAfter(variant.assemble)
 
-        val output = variant.outputs[0]
-        inputFile = output.outputFile
-        outputFile = File(output.outputFile.toString().replace(".apk", "-redex.apk"))
+        val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
+        val original = File(output.outputFile.toString().replace(".apk", "-unredexed.apk"))
+        output.outputFile.renameTo(original)
+        inputFile = original
+        outputFile = File(output.outputFile.toString())
 
         mappingFile = variant.mappingFile
 
@@ -62,7 +65,7 @@ open class RedexTask: Exec() {
         }
 
         passes?.apply {
-            if (passes!!.size > 0) {
+            if (passes!!.isNotEmpty()) {
                 val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(passes!!)))
                 val configFile = File(project.buildDir, "redex.config")
                 configFile.createNewFile()

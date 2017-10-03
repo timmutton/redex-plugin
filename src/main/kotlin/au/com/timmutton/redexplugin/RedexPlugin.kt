@@ -22,9 +22,9 @@ class RedexPlugin : Plugin<Project> {
             RedexTask.passes = extension.passes
             RedexTask.sdkDirectory = android.sdkDirectory.toString()
 
-            for(variant in android.applicationVariants) {
-                val task = project.tasks.create("redex${variant.name.capitalize()}", RedexTask::class.java)
-                task.initialise(variant)
+            android.applicationVariants.all {
+                val task = project.tasks.create("redex${it.name.capitalize()}", RedexTask::class.java)
+                task.initialise(it)
             }
         }
 	}

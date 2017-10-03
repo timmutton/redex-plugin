@@ -4,6 +4,7 @@ buildscript {
     }
 
     repositories {
+        google()
         jcenter()
         mavenCentral()
     }
@@ -20,10 +21,11 @@ apply plugin: 'maven'
 apply plugin: 'com.jfrog.bintray'
 
 group = "au.com.timmutton"
-version = "1.2.0"
+version = "1.3.0"
 
 dependencies {
     repositories {
+        google()
         mavenCentral()
         jcenter()
     }
