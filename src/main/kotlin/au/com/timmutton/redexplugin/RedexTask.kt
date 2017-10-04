@@ -32,7 +32,6 @@ open class RedexTask: Exec() {
     @InputFile
     private lateinit var inputFile: File
 
-    private var mappingFile: File? = null
 
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
@@ -44,8 +43,6 @@ open class RedexTask: Exec() {
 
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
-
-        mappingFile = variant.mappingFile
 
         if (passes != null && configFilePath != null) {
             throw IllegalArgumentException(
@@ -94,11 +91,6 @@ open class RedexTask: Exec() {
 
         args("-o", "$outputFile", "$inputFile")
         executable("redex")
-
-        if (mappingFile != null && !mappingFile!!.exists()) {
-            logger.log(LogLevel.INFO, "Mapping file specified at ${mappingFile!!.absolutePath} does not exist, assuming output is not obfuscated.")
-            mappingFile = null
-        }
 
         var showStats = true
         var startingMethods = 0
