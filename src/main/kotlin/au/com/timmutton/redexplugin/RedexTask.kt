@@ -32,9 +32,6 @@ open class RedexTask: Exec() {
     @InputFile
     private lateinit var inputFile: File
 
-    @OutputFile
-    private lateinit var outputFile: File
-
     private var mappingFile: File? = null
 
     @Suppress("UNCHECKED_CAST")
@@ -46,10 +43,7 @@ open class RedexTask: Exec() {
         mustRunAfter(variant.assemble)
 
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
-        val original = File(output.outputFile.toString().replace(".apk", "-unredexed.apk"))
-        output.outputFile.renameTo(original)
-        inputFile = original
-        outputFile = File(output.outputFile.toString())
+        inputFile = output.outputFile
 
         mappingFile = variant.mappingFile
 
@@ -93,6 +87,10 @@ open class RedexTask: Exec() {
                     "--keyalias", signingConfig!!.keyAlias,
                     "--keypass", signingConfig!!.keyPassword)
         }
+
+        val original = inputFile.toString()
+        inputFile.renameTo(File(original.replace(".apk", "-unredexed.apk")))
+        val outputFile = File(original)
 
         args("-o", "$outputFile", "$inputFile")
         executable("redex")
