@@ -102,14 +102,15 @@ open class RedexTask: Exec() {
             startingMethods = originalDexData.sumBy { it.data.methodRefs.size }
             startingFields = originalDexData.sumBy { it.data.fieldRefs.size }
             startingSize = inputFile.length().toInt()
+
+            logger.log(LogLevel.LIFECYCLE, "\nBefore redex:")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingMethods methods")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingFields fields")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingSize bytes")
         } catch(e: Exception) {
             showStats = false
         } finally {
             originalDexData.forEach { it.dispose() }
-        }
-
-        if(showStats) {
-            logger.log(LogLevel.LIFECYCLE, "\nBefore redex:\n\t$startingMethods methods\n\t$startingFields fields\n\t$startingSize bytes")
         }
 
         try {
