@@ -31,7 +31,7 @@ dependencies {
     }
 
     compile gradleApi()
-    compile 'com.android.tools.build:gradle:2.3.3'
+    compile 'com.android.tools.build:gradle:3.0.0-beta6'
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     compile 'com.google.code.gson:gson:2.8.0'
 }

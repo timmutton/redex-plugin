@@ -45,11 +45,14 @@ open class RedexTask: Exec() {
         signingConfig = variant.buildType.signingConfig
         mustRunAfter(variant.assemble)
 
-        val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
-        val original = File(output.outputFile.toString().replace(".apk", "-unredexed.apk"))
-        output.outputFile.renameTo(original)
-        inputFile = original
-        outputFile = File(output.outputFile.toString())
+        variant.outputs.all {
+            if(it.outputFile.name.endsWith(".apk")) {
+                val original = File(it.outputFile.toString().replace(".apk", "-unredexed.apk"))
+                it.outputFile.renameTo(original)
+                inputFile = original
+                outputFile = File(it.outputFile.toString())
+            }
+        }
 
         mappingFile = variant.mappingFile
 
