@@ -18,8 +18,14 @@ class RedexPlugin : Plugin<Project> {
             val android = project.extensions.getByType(AppExtension::class.java)
 
             val extension = project.extensions.getByType(RedexPluginExtension::class.java)
-            RedexTask.configFilePath = extension.configFilePath
+            RedexTask.configFile = extension.configFile
+            RedexTask.proguardConfigFiles = extension.proguardConfigFiles
+            RedexTask.proguardMapFile = extension.proguardMapFile
+            RedexTask.jarFiles = extension.jarFiles
+            RedexTask.keepFile = extension.keepFile
+            RedexTask.otherArgs = extension.otherArgs
             RedexTask.passes = extension.passes
+
             RedexTask.sdkDirectory = android.sdkDirectory.toString()
 
             for(variant in android.applicationVariants) {

@@ -6,3 +6,6 @@
 .DS_Store
 /build
 /captures
+
+# vim temporary files
+*.swp
