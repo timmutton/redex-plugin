@@ -14,6 +14,8 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileWriter
 import java.lang.IllegalArgumentException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * @author timmutton
@@ -85,9 +87,11 @@ open class RedexTask: Exec() {
                     "--keypass", signingConfig!!.keyPassword)
         }
 
-        val original = inputFile.toString()
-        inputFile.renameTo(File(original.replace(".apk", "-unredexed.apk")))
-        val outputFile = File(original)
+        val outputFile = File(inputFile.toString())
+
+        val unredexed = File(inputFile.toString().replace(".apk", "-unredexed.apk"))
+        Files.move(inputFile.toPath(), unredexed.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        inputFile = unredexed
 
         args("-o", "$outputFile", "$inputFile")
         executable("redex")
