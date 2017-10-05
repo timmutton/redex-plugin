@@ -24,9 +24,15 @@ open class RedexTask: Exec() {
     companion object {
         private val TASK_GROUP = "Optimisation"
 
+        var configFile : String? = null
+        var proguardConfigFiles : Array<String>? = null
+        var proguardMapFile : String? = null
+        var jarFiles : Array<String>? = null
+        var keepFile : String? = null
+        var otherArgs : String? = null
         var passes: Array<String>? = null
+
         var sdkDirectory: String? = null
-        var configFilePath : String? = null
     }
 
     private var signingConfig: SigningConfig? = null
@@ -46,10 +52,20 @@ open class RedexTask: Exec() {
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
 
-        if (passes != null && configFilePath != null) {
+        if (passes != null && configFile != null) {
             throw IllegalArgumentException(
-                "Cannot specify both passes and configFilePath");
+                "Cannot specify both passes and configFile");
         }
+    }
+
+    fun addFileArg(option : String, path : String ) {
+        val file = File(project.projectDir, path)
+        if (!file.exists()) {
+            throw FileNotFoundException(
+                "Could not find file at path: " +
+                file.absolutePath)
+        }
+        args(option, file.absolutePath)
     }
 
     override fun exec() {
@@ -60,24 +76,42 @@ open class RedexTask: Exec() {
         passes?.apply {
             if (passes!!.isNotEmpty()) {
                 val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(passes!!)))
-                val configFile = File(project.buildDir, "redex.config")
-                configFile.createNewFile()
-                val writer = FileWriter(configFile)
+                val config = File(project.buildDir, "redex.config")
+                config.createNewFile()
+                val writer = FileWriter(config)
                 val configString = Gson().toJson(redexConfig)
                 writer.write(configString.substring(1, configString.length - 1).replace("\\", ""))
                 writer.close()
-                args("-c", configFile.absolutePath)
+                args("-c", config.absolutePath)
             }
         }
 
-        configFilePath?.apply {
-            val configFile = File(project.projectDir, configFilePath)
-            if (!configFile.exists()) {
-                throw FileNotFoundException(
-                    "Could not find Redex config file at path: " +
-                    configFile.absolutePath)
+        configFile?.apply {
+            addFileArg("-c", configFile!!)
+        }
+
+        proguardConfigFiles?.apply{
+            for (path in proguardConfigFiles!!) {
+                addFileArg("-P", path)
             }
-            args("-c", configFile.absolutePath)
+        }
+
+        proguardMapFile?.apply{
+            addFileArg("-m", proguardMapFile!!)
+        }
+        
+        jarFiles?.apply{
+            for (path in jarFiles!!) {
+                addFileArg("-j", path)
+            }
+        }
+
+        keepFile?.apply{
+            addFileArg("-k", keepFile!!)
+        }
+
+        otherArgs?.apply{
+            args("", otherArgs!!)
         }
 
         signingConfig?.apply {

@@ -1,11 +1,13 @@
 # Redex Plugin
 
-A Gradle plugin that allows you to use Facebook's Redex tool as part of your build process
+A Gradle plugin that allows you to use Facebook's Redex tool as part of your
+build process
 
 ## Usage
-Before you can use this plugin, you must install the Redex tool. Instructions for installing Redex can be found at github.com/facebook/redex
+Before you can use this plugin, you must install the Redex tool. Instructions
+for installing Redex can be found at https://github.com/facebook/redex
 
-Once Redex installed, add the following to your `build.gradle`:
+Once Redex is installed, add the following to your `build.gradle`:
 
 ```groovy
 buildscript {
@@ -21,12 +23,28 @@ buildscript {
 apply plugin: 'com.android.application'
 apply plugin: 'redex'
 
-// Optional: set which passes are run
-redex.passes = ["ReBindRefsPass", ..., "ShortenSrcStringsPass"]
-```
-If you do not set the passes, all passes will be run by default. Sometimes you may not to run all optimisation passes, for example some appear to break when optimising kotlin code.
+// Optional: configure redex command line arguments
+redex {
+    // These are example arguments, fill them with your specific arguments
+    configFile = 'redex.config'
+    // `passes` is shorthand for a pass list instead of a config file
+    // passes = ['ReBindRefsPass', ..., 'ShortenSrcStringsPass']
+    proguardConfigFiles = ['common_proguard.pro', 'my_app_proguard.pro']
+    proguardMapFile = 'proguard_map.txt'
+    keepFile = 'keep.txt'
+    jarFiles = ['lib1.jar', 'lib2.jar']
+    otherArgs = '' // any other command line options to `redex`
+    // see `redex --help` for details on these arguments
+}
 
-If you specified a signing configuration for the given build type, this plugin will use that configuration to re-sign the application (Redex normally un-signs the apk).
+```
+If you do not set the passes or the config file, the default set of passes will
+be run. Sometimes you may not want to run all optimisation passes, for example
+some appear to break when optimising kotlin code.
+
+If you specified a signing configuration for the given build type, this plugin
+will use that configuration to re-sign the application (Redex normally un-signs
+the apk).
 
 ## License
 The MIT License (MIT)
