@@ -39,8 +39,8 @@ redex {
 
 ```
 If you do not set the passes or the config file, the default set of passes will
-be run. Sometimes you may not to run all optimisation passes, for example some
-appear to break when optimising kotlin code.
+be run. Sometimes you may not want to run all optimisation passes, for example
+some appear to break when optimising kotlin code.
 
 If you specified a signing configuration for the given build type, this plugin
 will use that configuration to re-sign the application (Redex normally un-signs
