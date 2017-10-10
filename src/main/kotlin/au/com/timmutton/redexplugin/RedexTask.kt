@@ -135,6 +135,10 @@ open class RedexTask: Exec() {
 
         try {
             super.exec()
+
+            if(showStats) {
+                logStats(outputFile)
+            }
         } catch (e: ExecException) {
             if (e.message != null && e.message!!.contains("A problem occurred starting process")) {
                 throw ExecException("A problem occurred starting Redex. " +
@@ -143,36 +147,36 @@ open class RedexTask: Exec() {
                 throw e
             }
         }
+    }
 
-        if(showStats) {
-            val originalDexData = DexFile.extractDexData(inputFile)
-            val newDexData = DexFile.extractDexData(outputFile)
+    private fun logStats(outputFile: File) {
+        val originalDexData = DexFile.extractDexData(inputFile)
+        val newDexData = DexFile.extractDexData(outputFile)
 
-            try {
-                val startingMethods = originalDexData.sumBy { it.data.methodRefs.size }
-                val startingFields = originalDexData.sumBy { it.data.fieldRefs.size }
-                val startingSize = inputFile.length().toInt()
+        try {
+            val startingMethods = originalDexData.sumBy { it.data.methodRefs.size }
+            val startingFields = originalDexData.sumBy { it.data.fieldRefs.size }
+            val startingSize = inputFile.length().toInt()
 
-                logger.log(LogLevel.LIFECYCLE, "\nBefore redex:")
-                logger.log(LogLevel.LIFECYCLE, "\t$startingMethods methods")
-                logger.log(LogLevel.LIFECYCLE, "\t$startingFields fields")
-                logger.log(LogLevel.LIFECYCLE, "\t$startingSize bytes")
+            logger.log(LogLevel.LIFECYCLE, "\nBefore redex:")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingMethods methods")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingFields fields")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingSize bytes")
 
-                val methods = newDexData.sumBy { it.data.methodRefs.size }
-                val methodPercentage = "%.2f".format(methods.toFloat() / startingMethods * 100f)
-                val fields = newDexData.sumBy { it.data.fieldRefs.size }
-                val fieldPercentage = "%.2f".format(fields.toFloat() / startingFields * 100f)
-                val size = outputFile.length().toInt()
-                val sizePercentage = "%.2f".format(size.toFloat() / startingSize * 100f)
+            val methods = newDexData.sumBy { it.data.methodRefs.size }
+            val methodPercentage = "%.2f".format(methods.toFloat() / startingMethods * 100f)
+            val fields = newDexData.sumBy { it.data.fieldRefs.size }
+            val fieldPercentage = "%.2f".format(fields.toFloat() / startingFields * 100f)
+            val size = outputFile.length().toInt()
+            val sizePercentage = "%.2f".format(size.toFloat() / startingSize * 100f)
 
-                logger.log(LogLevel.LIFECYCLE, "After redex:")
-                logger.log(LogLevel.LIFECYCLE, "\t$methods methods (%$methodPercentage of original)")
-                logger.log(LogLevel.LIFECYCLE, "\t$fields fields (%$fieldPercentage of original)")
-                logger.log(LogLevel.LIFECYCLE, "\t$size bytes (%$sizePercentage of original)")
-            } finally {
-                originalDexData.forEach { it.dispose() }
-                newDexData.forEach { it.dispose() }
-            }
+            logger.log(LogLevel.LIFECYCLE, "After redex:")
+            logger.log(LogLevel.LIFECYCLE, "\t$methods methods (%$methodPercentage of original)")
+            logger.log(LogLevel.LIFECYCLE, "\t$fields fields (%$fieldPercentage of original)")
+            logger.log(LogLevel.LIFECYCLE, "\t$size bytes (%$sizePercentage of original)")
+        } finally {
+            originalDexData.forEach { it.dispose() }
+            newDexData.forEach { it.dispose() }
         }
     }
 }
