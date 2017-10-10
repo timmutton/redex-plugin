@@ -39,7 +39,12 @@ open class RedexTask: Exec() {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
 
         configFile = extension.configFile
-        proguardConfigFiles = extension.proguardConfigFiles /*?: variant.buildType.proguardFiles.toList()*/
+        proguardConfigFiles = extension.proguardConfigFiles /*?: variant.let {
+            val proguardFiles = it.buildType.proguardFiles.toMutableList()
+            proguardFiles.addAll(it.mergedFlavor.proguardFiles)
+            proguardFiles
+        }*/
+
         proguardMapFile = extension.proguardMapFile /*?: variant.mappingFile*/
         jarFiles = extension.jarFiles
         keepFile = extension.keepFile
