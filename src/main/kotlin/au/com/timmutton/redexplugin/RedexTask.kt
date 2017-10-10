@@ -54,6 +54,10 @@ open class RedexTask: Exec() {
         dependsOn(variant.assemble)
         mustRunAfter(variant.assemble)
 
+        if(variant.buildType.isMinifyEnabled) {
+            variant.assemble.finalizedBy(this)
+        }
+
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
 
