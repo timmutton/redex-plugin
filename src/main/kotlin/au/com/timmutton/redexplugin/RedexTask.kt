@@ -22,31 +22,35 @@ import java.nio.file.StandardCopyOption
  */
 open class RedexTask: Exec() {
     companion object {
-        private val TASK_GROUP = "Optimisation"
-
-        var configFile : String? = null
-        var proguardConfigFiles : Array<String>? = null
-        var proguardMapFile : String? = null
-        var jarFiles : Array<String>? = null
-        var keepFile : String? = null
-        var otherArgs : String? = null
-        var passes: Array<String>? = null
-
-        var sdkDirectory: String? = null
+        var sdkDirectory: File? = null
     }
 
     private var signingConfig: SigningConfig? = null
+    private var configFile : File? = null
+    private var proguardConfigFiles : List<File>? = null
+    private var proguardMapFile : File? = null
+    private var jarFiles : List<File>? = null
+    private var keepFile : File? = null
+    private var otherArgs : String? = null
+    private var passes: List<String>? = null
 
     @InputFile
     private lateinit var inputFile: File
 
-
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
-    fun initialise(variant: ApplicationVariant) {
-        group = TASK_GROUP
+    fun initialise(variant: ApplicationVariant, extension: RedexPluginExtension) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
+
+        configFile = extension.configFile
+        proguardConfigFiles = extension.proguardConfigFiles ?: variant.buildType.proguardFiles.toList()
+        proguardMapFile = extension.proguardMapFile ?: variant.mappingFile
+        jarFiles = extension.jarFiles
+        keepFile = extension.keepFile
+        otherArgs = extension.otherArgs
+        passes = extension.passes
         signingConfig = variant.buildType.signingConfig
+
         mustRunAfter(variant.assemble)
 
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
@@ -56,16 +60,6 @@ open class RedexTask: Exec() {
             throw IllegalArgumentException(
                 "Cannot specify both passes and configFile");
         }
-    }
-
-    fun addFileArg(option : String, path : String ) {
-        val file = File(project.projectDir, path)
-        if (!file.exists()) {
-            throw FileNotFoundException(
-                "Could not find file at path: " +
-                file.absolutePath)
-        }
-        args(option, file.absolutePath)
     }
 
     override fun exec() {
@@ -87,27 +81,27 @@ open class RedexTask: Exec() {
         }
 
         configFile?.apply {
-            addFileArg("-c", configFile!!)
+            args("-c", configFile!!.absolutePath)
         }
 
         proguardConfigFiles?.apply{
             for (path in proguardConfigFiles!!) {
-                addFileArg("-P", path)
+                args("-P", path.absolutePath)
             }
         }
 
         proguardMapFile?.apply{
-            addFileArg("-m", proguardMapFile!!)
+            args("-m", proguardMapFile!!.absolutePath)
         }
         
         jarFiles?.apply{
             for (path in jarFiles!!) {
-                addFileArg("-j", path)
+                args("-j", path.absolutePath)
             }
         }
 
         keepFile?.apply{
-            addFileArg("-k", keepFile!!)
+            args("-k", keepFile!!.absolutePath)
         }
 
         otherArgs?.apply{

@@ -8,7 +8,7 @@ import org.gradle.api.tasks.StopExecutionException
 
 class RedexPlugin : Plugin<Project> {
 	override fun apply(project: Project) {
-		project.extensions.create("redex", RedexPluginExtension::class.java)
+        val extension = project.extensions.create("redex", RedexPluginExtension::class.java)
 
         project.afterEvaluate {
             if(!project.plugins.hasPlugin(AppPlugin::class.java)) {
@@ -16,21 +16,11 @@ class RedexPlugin : Plugin<Project> {
             }
 
             val android = project.extensions.getByType(AppExtension::class.java)
-
-            val extension = project.extensions.getByType(RedexPluginExtension::class.java)
-            RedexTask.configFile = extension.configFile
-            RedexTask.proguardConfigFiles = extension.proguardConfigFiles
-            RedexTask.proguardMapFile = extension.proguardMapFile
-            RedexTask.jarFiles = extension.jarFiles
-            RedexTask.keepFile = extension.keepFile
-            RedexTask.otherArgs = extension.otherArgs
-            RedexTask.passes = extension.passes
-
-            RedexTask.sdkDirectory = android.sdkDirectory.toString()
+            RedexTask.sdkDirectory = android.sdkDirectory
 
             android.applicationVariants.all {
                 val task = project.tasks.create("redex${it.name.capitalize()}", RedexTask::class.java)
-                task.initialise(it)
+                task.initialise(it, extension)
             }
         }
 	}
