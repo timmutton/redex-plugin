@@ -19,10 +19,6 @@ import java.nio.file.StandardCopyOption
  * @author timmutton
  */
 open class RedexTask: Exec() {
-    companion object {
-        var sdkDirectory: File? = null
-    }
-
     private var signingConfig: SigningConfig? = null
     private var configFile : File? = null
     private var proguardConfigFiles : List<File>? = null
@@ -32,24 +28,26 @@ open class RedexTask: Exec() {
     private var otherArgs : String? = null
     private var passes: List<String>? = null
     private var showStats: Boolean = true
+    private var sdkDirectory: File? = null
 
     @InputFile
     private lateinit var inputFile: File
 
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
-    fun initialise(variant: ApplicationVariant, extension: RedexPluginExtension) {
+    fun initialise(variant: ApplicationVariant, extension: RedexExtension) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
 
         configFile = extension.configFile
-        proguardConfigFiles = extension.proguardConfigFiles ?: variant.buildType.proguardFiles.toList()
-        proguardMapFile = extension.proguardMapFile ?: variant.mappingFile
+        proguardConfigFiles = extension.proguardConfigFiles /*?: variant.buildType.proguardFiles.toList()*/
+        proguardMapFile = extension.proguardMapFile /*?: variant.mappingFile*/
         jarFiles = extension.jarFiles
         keepFile = extension.keepFile
         otherArgs = extension.otherArgs
         passes = extension.passes
         showStats = extension.showStats
         signingConfig = variant.buildType.signingConfig
+        sdkDirectory = extension.sdkDirectory
 
         dependsOn(variant.assemble)
         mustRunAfter(variant.assemble)
