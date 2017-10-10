@@ -8,10 +8,8 @@ import com.google.gson.Gson
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputFile
 import org.gradle.process.internal.ExecException
 import java.io.File
-import java.io.FileNotFoundException
 import java.io.FileWriter
 import java.lang.IllegalArgumentException
 import java.nio.file.Files
@@ -53,6 +51,7 @@ open class RedexTask: Exec() {
         showStats = extension.showStats
         signingConfig = variant.buildType.signingConfig
 
+        dependsOn(variant.assemble)
         mustRunAfter(variant.assemble)
 
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
@@ -65,56 +64,60 @@ open class RedexTask: Exec() {
     }
 
     override fun exec() {
-        sdkDirectory?.apply {
-            environment("ANDROID_SDK", sdkDirectory)
+        sdkDirectory?.let {
+            environment("ANDROID_SDK", it)
         }
 
-        passes?.apply {
-            if (passes!!.isNotEmpty()) {
-                val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(passes!!)))
-                val config = File(project.buildDir, "redex.config")
-                config.createNewFile()
-                val writer = FileWriter(config)
-                val configString = Gson().toJson(redexConfig)
-                writer.write(configString.substring(1, configString.length - 1).replace("\\", ""))
-                writer.close()
-                args("-c", config.absolutePath)
+        passes?.let {
+            val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(it)))
+            val config = File(project.buildDir, "redex.config")
+            config.createNewFile()
+            val writer = FileWriter(config)
+            val configString = Gson().toJson(redexConfig)
+            writer.write(configString.substring(1, configString.length - 1).replace("\\", ""))
+            writer.close()
+            args("-c", config.absolutePath)
+        }
+
+        configFile?.let {
+            if(it.exists()) {
+                args("-c", it.absolutePath)
             }
         }
 
-        configFile?.apply {
-            args("-c", configFile!!.absolutePath)
-        }
-
-        proguardConfigFiles?.apply{
-            for (path in proguardConfigFiles!!) {
-                args("-P", path.absolutePath)
+        proguardConfigFiles?.forEach {
+            if(it.exists()) {
+                args("-P", it.absolutePath)
             }
         }
 
-        proguardMapFile?.apply{
-            args("-m", proguardMapFile!!.absolutePath)
+        proguardMapFile?.let {
+            if(it.exists()) {
+                args("-m", it.absolutePath)
+            }
         }
         
-        jarFiles?.apply{
-            for (path in jarFiles!!) {
-                args("-j", path.absolutePath)
+        jarFiles?.forEach {
+            if(it.exists()) {
+                args("-j", it.absolutePath)
             }
         }
 
-        keepFile?.apply{
-            args("-k", keepFile!!.absolutePath)
+        keepFile?.let {
+            if(it.exists()) {
+                args("-k", it.absolutePath)
+            }
         }
 
-        otherArgs?.apply{
-            args("", otherArgs!!)
+        otherArgs?.let {
+            args("", it)
         }
 
-        signingConfig?.apply {
+        signingConfig?.let {
             args("--sign",
-                    "--keystore", signingConfig!!.storeFile.absolutePath,
-                    "--keyalias", signingConfig!!.keyAlias,
-                    "--keypass", signingConfig!!.keyPassword)
+                    "--keystore", it.storeFile.absolutePath,
+                    "--keyalias", it.keyAlias,
+                    "--keypass", it.keyPassword)
         }
 
         val outputFile = File(inputFile.toString())
