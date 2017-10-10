@@ -47,7 +47,11 @@ open class RedexTask: Exec() {
 
         proguardMapFile = extension.proguardMapFile /*?: variant.mappingFile*/
         jarFiles = extension.jarFiles
-        keepFile = extension.keepFile
+        keepFile = extension.keepFile /*?: variant.let {
+            it.buildType.multiDexKeepProguard
+            // TODO: add support for the merged flavor keep file
+//            it.mergedFlavor.multiDexKeepProguard
+        }*/
         otherArgs = extension.otherArgs
         passes = extension.passes
         showStats = extension.showStats
