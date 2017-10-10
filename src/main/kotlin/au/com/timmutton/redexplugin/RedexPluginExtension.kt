@@ -12,5 +12,6 @@ open class RedexPluginExtension {
     var jarFiles : List<File>? = null
     var keepFile : File? = null
     var otherArgs : String? = null
-    var passes : Array<String>? = null
+    var passes : List<String>? = null
+    var showStats: Boolean = true
 }
