@@ -8,26 +8,27 @@ import com.google.gson.Gson
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputFile
 import org.gradle.process.internal.ExecException
 import java.io.File
-import java.io.FileNotFoundException
 import java.io.FileWriter
 import java.lang.IllegalArgumentException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * @author timmutton
  */
 open class RedexTask: Exec() {
-    companion object {
-        private val TASK_GROUP = "Optimisation"
-
-        var passes: Array<String>? = null
-        var sdkDirectory: String? = null
-        var configFilePath : String? = null
-    }
-
     private var signingConfig: SigningConfig? = null
+    private var configFile : File? = null
+    private var proguardConfigFiles : List<File>? = null
+    private var proguardMapFile : File? = null
+    private var jarFiles : List<File>? = null
+    private var keepFile : File? = null
+    private var otherArgs : String? = null
+    private var passes: List<String>? = null
+    private var showStats: Boolean = true
+    private var sdkDirectory: File? = null
 
     @InputFile
     private lateinit var inputFile: File
@@ -36,110 +37,116 @@ open class RedexTask: Exec() {
 
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
-    fun initialise(variant: ApplicationVariant) {
-        group = TASK_GROUP
+    fun initialise(variant: ApplicationVariant, extension: RedexExtension) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
+
+        configFile = extension.configFile
+        proguardConfigFiles = extension.proguardConfigFiles /*?: variant.let {
+            val proguardFiles = it.buildType.proguardFiles.toMutableList()
+            proguardFiles.addAll(it.mergedFlavor.proguardFiles)
+            proguardFiles
+        }*/
+
+        proguardMapFile = extension.proguardMapFile /*?: variant.mappingFile*/
+        jarFiles = extension.jarFiles
+        keepFile = extension.keepFile /*?: variant.let {
+            it.buildType.multiDexKeepProguard
+            // TODO: add support for the merged flavor keep file
+//            it.mergedFlavor.multiDexKeepProguard
+        }*/
+        otherArgs = extension.otherArgs
+        passes = extension.passes
+        showStats = extension.showStats
         signingConfig = variant.buildType.signingConfig
+        sdkDirectory = extension.sdkDirectory
+
+        dependsOn(variant.assemble)
         mustRunAfter(variant.assemble)
+
+        if(variant.buildType.isMinifyEnabled) {
+            variant.assemble.finalizedBy(this)
+        }
 
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
 
-        mappingFile = variant.mappingFile
-
-        if (passes != null && configFilePath != null) {
+        if (passes != null && configFile != null) {
             throw IllegalArgumentException(
-                "Cannot specify both passes and configFilePath");
+                "Cannot specify both passes and configFile");
         }
     }
 
     override fun exec() {
-        sdkDirectory?.apply {
-            environment("ANDROID_SDK", sdkDirectory)
+        sdkDirectory?.let {
+            environment("ANDROID_SDK", it)
         }
 
-        passes?.apply {
-            if (passes!!.isNotEmpty()) {
-                val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(passes!!)))
-                val configFile = File(project.buildDir, "redex.config")
-                configFile.createNewFile()
-                val writer = FileWriter(configFile)
-                val configString = Gson().toJson(redexConfig)
-                writer.write(configString.substring(1, configString.length - 1).replace("\\", ""))
-                writer.close()
-                args("-c", configFile.absolutePath)
+        passes?.let {
+            val redexConfig = Gson().toJson(RedexConfigurationContainer(RedexConfiguration(it)))
+            val config = File(project.buildDir, "redex.config")
+            config.createNewFile()
+            val writer = FileWriter(config)
+            val configString = Gson().toJson(redexConfig)
+            writer.write(configString.substring(1, configString.length - 1).replace("\\", ""))
+            writer.close()
+            args("-c", config.absolutePath)
+        }
+
+        configFile?.let {
+            if(it.exists()) {
+                args("-c", it.absolutePath)
             }
         }
 
-        configFilePath?.apply {
-            val configFile = File(project.projectDir, configFilePath)
-            if (!configFile.exists()) {
-                throw FileNotFoundException(
-                    "Could not find Redex config file at path: " +
-                    configFile.absolutePath)
+        proguardConfigFiles?.forEach {
+            if(it.exists()) {
+                args("-P", it.absolutePath)
             }
-            args("-c", configFile.absolutePath)
         }
 
-        signingConfig?.apply {
+        proguardMapFile?.let {
+            if(it.exists()) {
+                args("-m", it.absolutePath)
+            }
+        }
+        
+        jarFiles?.forEach {
+            if(it.exists()) {
+                args("-j", it.absolutePath)
+            }
+        }
+
+        keepFile?.let {
+            if(it.exists()) {
+                args("-k", it.absolutePath)
+            }
+        }
+
+        otherArgs?.let {
+            args("", it)
+        }
+
+        signingConfig?.let {
             args("--sign",
-                    "--keystore", signingConfig!!.storeFile.absolutePath,
-                    "--keyalias", signingConfig!!.keyAlias,
-                    "--keypass", signingConfig!!.keyPassword)
+                    "--keystore", it.storeFile.absolutePath,
+                    "--keyalias", it.keyAlias,
+                    "--keypass", it.keyPassword)
         }
 
-        val original = inputFile.toString()
-        inputFile.renameTo(File(original.replace(".apk", "-unredexed.apk")))
-        val outputFile = File(original)
+        val outputFile = File(inputFile.toString())
+
+        val unredexed = File(inputFile.toString().replace(".apk", "-unredexed.apk"))
+        Files.move(inputFile.toPath(), unredexed.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        inputFile = unredexed
 
         args("-o", "$outputFile", "$inputFile")
         executable("redex")
-
-        if (mappingFile != null && !mappingFile!!.exists()) {
-            logger.log(LogLevel.INFO, "Mapping file specified at ${mappingFile!!.absolutePath} does not exist, assuming output is not obfuscated.")
-            mappingFile = null
-        }
-
-        var showStats = true
-        var startingMethods = 0
-        var startingFields = 0
-        var startingSize = 0
-
-        val originalDexData = DexFile.extractDexData(inputFile)
-        try {
-            startingMethods = originalDexData.sumBy { it.data.methodRefs.size }
-            startingFields = originalDexData.sumBy { it.data.fieldRefs.size }
-            startingSize = inputFile.length().toInt()
-        } catch(e: Exception) {
-            showStats = false
-        } finally {
-            originalDexData.forEach { it.dispose() }
-        }
-
-        if(showStats) {
-            logger.log(LogLevel.LIFECYCLE, "\nBefore redex:\n\t$startingMethods methods\n\t$startingFields fields\n\t$startingSize bytes")
-        }
 
         try {
             super.exec()
 
             if(showStats) {
-                val newDexData = DexFile.extractDexData(outputFile)
-                try {
-                    val methods = newDexData.sumBy { it.data.methodRefs.size }
-                    val methodPercentage = "%.2f".format(methods.toFloat() / startingMethods * 100f)
-                    val fields = newDexData.sumBy { it.data.fieldRefs.size }
-                    val fieldPercentage = "%.2f".format(fields.toFloat() / startingFields * 100f)
-                    val size = outputFile.length().toInt()
-                    val sizePercentage = "%.2f".format(size.toFloat() / startingSize * 100f)
-
-                    logger.log(LogLevel.LIFECYCLE, "After redex:")
-                    logger.log(LogLevel.LIFECYCLE, "\t$methods methods (%$methodPercentage of original)")
-                    logger.log(LogLevel.LIFECYCLE, "\t$fields fields (%$fieldPercentage of original)")
-                    logger.log(LogLevel.LIFECYCLE, "\t$size bytes (%$sizePercentage of original)")
-                } finally {
-                    newDexData.forEach { it.dispose() }
-                }
+                logStats(outputFile)
             }
         } catch (e: ExecException) {
             if (e.message != null && e.message!!.contains("A problem occurred starting process")) {
@@ -148,6 +155,37 @@ open class RedexTask: Exec() {
             } else {
                 throw e
             }
+        }
+    }
+
+    private fun logStats(outputFile: File) {
+        val originalDexData = DexFile.extractDexData(inputFile)
+        val newDexData = DexFile.extractDexData(outputFile)
+
+        try {
+            val startingMethods = originalDexData.sumBy { it.data.methodRefs.size }
+            val startingFields = originalDexData.sumBy { it.data.fieldRefs.size }
+            val startingSize = inputFile.length().toInt()
+
+            logger.log(LogLevel.LIFECYCLE, "\nBefore redex:")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingMethods methods")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingFields fields")
+            logger.log(LogLevel.LIFECYCLE, "\t$startingSize bytes")
+
+            val methods = newDexData.sumBy { it.data.methodRefs.size }
+            val methodPercentage = "%.2f".format(methods.toFloat() / startingMethods * 100f)
+            val fields = newDexData.sumBy { it.data.fieldRefs.size }
+            val fieldPercentage = "%.2f".format(fields.toFloat() / startingFields * 100f)
+            val size = outputFile.length().toInt()
+            val sizePercentage = "%.2f".format(size.toFloat() / startingSize * 100f)
+
+            logger.log(LogLevel.LIFECYCLE, "After redex:")
+            logger.log(LogLevel.LIFECYCLE, "\t$methods methods (%$methodPercentage of original)")
+            logger.log(LogLevel.LIFECYCLE, "\t$fields fields (%$fieldPercentage of original)")
+            logger.log(LogLevel.LIFECYCLE, "\t$size bytes (%$sizePercentage of original)")
+        } finally {
+            originalDexData.forEach { it.dispose() }
+            newDexData.forEach { it.dispose() }
         }
     }
 }

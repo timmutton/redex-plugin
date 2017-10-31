@@ -7,25 +7,19 @@ import org.gradle.api.Project
 import org.gradle.api.tasks.StopExecutionException
 
 class RedexPlugin : Plugin<Project> {
-	override fun apply(project: Project) {
-		project.extensions.create("redex", RedexPluginExtension::class.java)
-
-        project.afterEvaluate {
-            if(!project.plugins.hasPlugin(AppPlugin::class.java)) {
-                throw StopExecutionException("Redex requires the android application plugin")
-            }
-
+    override fun apply(project: Project) {
+        if (project.plugins.hasPlugin(AppPlugin::class.java)) {
             val android = project.extensions.getByType(AppExtension::class.java)
+            val extension = project.extensions.create("redex", RedexExtension::class.java, android)
 
-            val extension = project.extensions.getByType(RedexPluginExtension::class.java)
-            RedexTask.configFilePath = extension.configFilePath
-            RedexTask.passes = extension.passes
-            RedexTask.sdkDirectory = android.sdkDirectory.toString()
-
-            android.applicationVariants.all {
-                val task = project.tasks.create("redex${it.name.capitalize()}", RedexTask::class.java)
-                task.initialise(it)
+            project.afterEvaluate {
+                android.applicationVariants.all {
+                    val task = project.tasks.create("redex${it.name.capitalize()}", RedexTask::class.java)
+                    task.initialise(it, extension)
+                }
             }
+        } else {
+            throw StopExecutionException("Redex requires the android application plugin")
         }
-	}
+    }
 }
