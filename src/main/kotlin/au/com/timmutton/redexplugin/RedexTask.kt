@@ -33,8 +33,6 @@ open class RedexTask: Exec() {
     @InputFile
     private lateinit var inputFile: File
 
-    private var mappingFile: File? = null
-
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
     fun initialise(variant: ApplicationVariant, extension: RedexExtension) {
