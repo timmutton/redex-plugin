@@ -38,16 +38,17 @@ open class RedexTask: Exec() {
     fun initialise(variant: ApplicationVariant, extension: RedexExtension) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
 
-        configFile = extension.configFile
-        proguardConfigFiles = extension.proguardConfigFiles /*?: variant.let {
+        configFile = File(extension.configFile)
+        proguardConfigFiles = extension.proguardConfigFiles?.map{ s -> File(s) }
+        /*?: variant.let {
             val proguardFiles = it.buildType.proguardFiles.toMutableList()
             proguardFiles.addAll(it.mergedFlavor.proguardFiles)
             proguardFiles
         }*/
 
-        proguardMapFile = extension.proguardMapFile /*?: variant.mappingFile*/
-        jarFiles = extension.jarFiles
-        keepFile = extension.keepFile /*?: variant.let {
+        proguardMapFile = File(extension.proguardMapFile) /*?: variant.mappingFile*/
+        jarFiles = extension.jarFiles?.map { s -> File(s) }
+        keepFile = File(extension.keepFile) /*?: variant.let {
             it.buildType.multiDexKeepProguard
             // TODO: add support for the merged flavor keep file
 //            it.mergedFlavor.multiDexKeepProguard
