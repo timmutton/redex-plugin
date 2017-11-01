@@ -15,6 +15,11 @@ buildscript {
     }
 }
 
+// a plugin to download files. Used for downloaded redex releases from github
+plugins {
+    id "de.undercouch.download" version "3.3.0"
+}
+
 apply plugin: 'idea'
 apply plugin: 'kotlin'
 apply plugin: 'maven'
@@ -50,6 +55,50 @@ task sourcesJar(type: Jar) {
 task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc
+}
+
+// releases/latest is a webpage for the most recent release
+// of redex. Search through the html for the name of the
+// tag of this release.
+import de.undercouch.gradle.tasks.download.Download
+import java.util.regex.Pattern
+import java.util.regex.Matcher
+import java.nio.file.Files
+def getLatestRedexTag = { ->
+    def latest = "https://github.com/facebook/redex/releases/latest"
+    download {
+        src latest
+        dest buildDir
+        onlyIfNewer true
+    }
+    def input = new File("$buildDir/latest").text
+    def pattern = Pattern.compile(
+        '/facebook/redex/releases/tag/(v\\d+\\.\\d+\\.\\d+)')
+    def matcher = pattern.matcher(input)
+    matcher.find()
+    return matcher.group(1)
+}
+
+// download redex from the github release page
+import org.apache.tools.ant.taskdefs.condition.Os
+task downloadRedex {
+    if (Os.isFamily(Os.FAMILY_UNIX)) {
+        def tag = getLatestRedexTag()
+        def redex_exec = 'redex_linux_x86_64'
+        def linux = "https://github.com/facebook/redex/releases/download/$tag/$redex_exec"
+        download {
+            src linux
+            dest buildDir
+            onlyIfNewer true
+        }
+        exec {
+            commandLine 'chmod', 'u+x', "$buildDir/$redex_exec"
+        }
+    } else {
+        println("Your platform isn't supported (yet) for downloading redex." +
+                "Please follow instructions at" +
+                "https://github.com/facebok/redex")
+    }
 }
 
 artifacts {
