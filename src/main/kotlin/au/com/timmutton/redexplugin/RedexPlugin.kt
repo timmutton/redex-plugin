@@ -13,9 +13,13 @@ class RedexPlugin : Plugin<Project> {
             val extension = project.extensions.create("redex", RedexExtension::class.java, android)
 
             project.afterEvaluate {
+                val download = project.tasks.create("redexDownload", RedexDownloadTask::class.java)
+                download.initialise(extension)
+
                 android.applicationVariants.all {
                     val task = project.tasks.create("redex${it.name.capitalize()}", RedexTask::class.java)
                     task.initialise(it, extension)
+                    task.dependsOn(download)
                 }
             }
         } else {
