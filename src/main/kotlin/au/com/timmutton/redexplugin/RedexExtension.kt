@@ -22,5 +22,5 @@ open class RedexExtension(appExtension: AppExtension) {
     // latest means the most recent redex release
     // any other string is a tag name in
     // github.com/facebook/redex/releases/tag/<tag>
-    val redexVersion : String? = "latest"
+    var version : String? = "latest"
 }

@@ -73,12 +73,6 @@ open class RedexTask: Exec() {
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
 
-
-        if (dlRedex != null && !dlRedex.exists()) {
-            throw FileNotFoundException(
-                "Could not find file at path: " +
-                dlRedex.absolutePath)
-        }
         redex = dlRedex?.absolutePath ?: "redex"
 
         if (passes != null && configFile != null) {

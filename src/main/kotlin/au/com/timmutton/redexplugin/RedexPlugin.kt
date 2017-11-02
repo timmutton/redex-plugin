@@ -16,7 +16,7 @@ class RedexPlugin : Plugin<Project> {
             project.afterEvaluate {
                 var download : RedexDownloadTask? = null
                 var redexPath : File? = null
-                if (extension.redexVersion != null) {
+                if (extension.version != null) {
                     download = project.tasks.create("redexDownload", RedexDownloadTask::class.java)
                     redexPath = download.initialise(extension)
                 }

@@ -34,7 +34,7 @@ dependencies {
     compile 'com.android.tools.build:gradle:2.3.3'
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     compile 'com.google.code.gson:gson:2.8.0'
-    compile 'de.undercouch:gradle-download-task:3.3.0'
+    compile 'com.github.kittinunf.fuel:fuel:1.11.0'
 }
 
 task wrapper(type: Wrapper) {
