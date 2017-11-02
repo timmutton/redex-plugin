@@ -67,7 +67,7 @@ open class RedexDownloadTask : DefaultTask() {
             return
         }
         val (redex, url) = getRedexExecutableFile()
-        if (!redex.exists()) {
+        if (url != null && !redex.exists()) {
             // Only download if we don't already have it
             download(url, redex)
             redex.setExecutable(true)
@@ -78,12 +78,16 @@ open class RedexDownloadTask : DefaultTask() {
     }
 
     data class Pair<T1, T2>(val first : T1, val second : T2)
-    fun getRedexExecutableFile() : Pair<File, String> {
+    fun getRedexExecutableFile() : Pair<File?, String?> {
         val tag = if (requestedVersion == "latest") getLatestRedexTag()
                   else requestedVersion
-        val redex_exec = "redex_${getOS()!!}"
-        val url = "https://github.com/facebook/redex/releases/download/$tag/$redex_exec"
-        return Pair(File("$buildDir/${redex_exec}_$tag"), url)
+        val os = getOS()
+        if (os != null) {
+            val redex_exec = "redex_${getOS()!!}"
+            val url = "https://github.com/facebook/redex/releases/download/$tag/$redex_exec"
+            return Pair(File("$buildDir/${redex_exec}_$tag"), url)
+        }
+        return Pair(null, null)
     }
 
     fun getOS() : String? {
@@ -95,7 +99,8 @@ open class RedexDownloadTask : DefaultTask() {
         }
         System.err.println(
             "Your platform isn't supported (yet) for downloading redex." +
-            "Please follow instructions at https://github.com/facebok/redex.")
+            "Please follow instructions at https://github.com/facebok/redex." +
+            "Assuming redex is in your PATH")
         return null
     }
 }
