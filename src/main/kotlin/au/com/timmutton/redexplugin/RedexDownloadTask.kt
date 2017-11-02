@@ -17,9 +17,33 @@ import org.gradle.api.tasks.TaskAction
 
 
 open class RedexDownloadTask : DefaultTask() {
-    val DEBUG = true
     var requestedVersion : String? = "latest"
     public val buildDir = project.buildDir.getPath()
+
+    // Returns the location where redex will be downloaded
+    // after this task is run
+    public fun initialise(ext : RedexExtension) : File? {
+        requestedVersion = ext.version
+        val (redex, _) = getRedexExecutableFile()
+        return redex
+    }
+
+    @TaskAction
+    // download redex from the github release page
+    public fun run() {
+        if (requestedVersion == null) {
+            return
+        }
+        val (redex, url) = getRedexExecutableFile()
+        if (redex == null || url == null) {
+            return
+        }
+        if (!redex.exists()) {
+            // Only download if we don't already have it
+            download(url, redex)
+            redex.setExecutable(true)
+        }
+    }
 
     // if dest is null, return the data
     // if dest is not null, write it to dest
@@ -41,6 +65,24 @@ open class RedexDownloadTask : DefaultTask() {
         return output
     }
 
+    // Returns the file where the redex binary will be placed
+    // and the URL where it will be downloaded from
+    //
+    // If we're on an unsupported platform, print to stderr and fallback
+    // to finding redex on the PATH
+    data class Pair<T1, T2>(val first : T1, val second : T2)
+    fun getRedexExecutableFile() : Pair<File?, String?> {
+        val tag = if (requestedVersion == "latest") getLatestRedexTag()
+                  else requestedVersion
+        val os = getOS()
+        if (os != null) {
+            val redex_exec = "redex_$os"
+            val url = "https://github.com/facebook/redex/releases/download/$tag/$redex_exec"
+            return Pair(File("$buildDir/${redex_exec}_$tag"), url)
+        }
+        return Pair(null, null)
+    }
+
     // releases/latest is a webpage for the most recent release
     // of redex. Search through the html for the name of the
     // tag of this release.
@@ -54,42 +96,7 @@ open class RedexDownloadTask : DefaultTask() {
         return matcher.group(1)
     }
 
-    public fun initialise(ext : RedexExtension) : File? {
-        requestedVersion = ext.version
-        val (redex, _) = getRedexExecutableFile()
-        return redex
-    }
-
-    @TaskAction
-    // download redex from the github release page
-    public fun run() {
-        if (requestedVersion == null) {
-            return
-        }
-        val (redex, url) = getRedexExecutableFile()
-        if (url != null && !redex.exists()) {
-            // Only download if we don't already have it
-            download(url, redex)
-            redex.setExecutable(true)
-        }
-        if (DEBUG) {
-            println("Redex downloaded to ${redex.getAbsolutePath()}")
-        }
-    }
-
-    data class Pair<T1, T2>(val first : T1, val second : T2)
-    fun getRedexExecutableFile() : Pair<File?, String?> {
-        val tag = if (requestedVersion == "latest") getLatestRedexTag()
-                  else requestedVersion
-        val os = getOS()
-        if (os != null) {
-            val redex_exec = "redex_${getOS()!!}"
-            val url = "https://github.com/facebook/redex/releases/download/$tag/$redex_exec"
-            return Pair(File("$buildDir/${redex_exec}_$tag"), url)
-        }
-        return Pair(null, null)
-    }
-
+    // get a string like <os>_<architecture> of the current machine
     fun getOS() : String? {
         if (Os.isFamily(Os.FAMILY_UNIX)) {
             // TODO support other architectures (32bit, non intel, etc.)
