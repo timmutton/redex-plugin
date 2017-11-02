@@ -2,6 +2,7 @@ package au.com.timmutton.redexplugin
 
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.AppPlugin
+import java.io.File
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.StopExecutionException
@@ -13,13 +14,19 @@ class RedexPlugin : Plugin<Project> {
             val extension = project.extensions.create("redex", RedexExtension::class.java, android)
 
             project.afterEvaluate {
-                val download = project.tasks.create("redexDownload", RedexDownloadTask::class.java)
-                download.initialise(extension)
+                var download : RedexDownloadTask? = null
+                var redexPath : File? = null
+                if (extension.redexVersion != null) {
+                    download = project.tasks.create("redexDownload", RedexDownloadTask::class.java)
+                    redexPath = download.initialise(extension)
+                }
 
                 android.applicationVariants.all {
                     val task = project.tasks.create("redex${it.name.capitalize()}", RedexTask::class.java)
-                    task.initialise(it, extension)
-                    task.dependsOn(download)
+                    task.initialise(it, extension, redexPath)
+                    if (download != null) {
+                        task.dependsOn(download)
+                    }
                 }
             }
         } else {

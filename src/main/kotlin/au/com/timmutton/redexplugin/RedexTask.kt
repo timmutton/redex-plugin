@@ -10,6 +10,7 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.InputFile
 import org.gradle.process.internal.ExecException
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileWriter
 import java.lang.IllegalArgumentException
 import java.nio.file.Files
@@ -29,26 +30,29 @@ open class RedexTask: Exec() {
     private var passes: List<String>? = null
     private var showStats: Boolean = true
     private var sdkDirectory: File? = null
+    private var redex : String? = null
 
     @InputFile
     private lateinit var inputFile: File
 
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
-    fun initialise(variant: ApplicationVariant, extension: RedexExtension) {
+    fun initialise(variant: ApplicationVariant, extension: RedexExtension, dlRedex : File?) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
 
-        configFile = File(extension.configFile)
-        proguardConfigFiles = extension.proguardConfigFiles?.map{ s -> File(s) }
+        configFile = extension.configFile?.let { s -> findFile(s) }
+        proguardConfigFiles = extension.proguardConfigFiles?.map{ s -> findFile(s) }
         /*?: variant.let {
             val proguardFiles = it.buildType.proguardFiles.toMutableList()
             proguardFiles.addAll(it.mergedFlavor.proguardFiles)
             proguardFiles
         }*/
 
-        proguardMapFile = File(extension.proguardMapFile) /*?: variant.mappingFile*/
-        jarFiles = extension.jarFiles?.map { s -> File(s) }
-        keepFile = File(extension.keepFile) /*?: variant.let {
+        proguardMapFile = extension.proguardMapFile?.let { s -> findFile(s) }
+        /*?: variant.mappingFile*/
+        jarFiles = extension.jarFiles?.map { s -> findFile(s) }
+        keepFile = extension.keepFile?.let { s -> findFile(s) }
+        /*?: variant.let {
             it.buildType.multiDexKeepProguard
             // TODO: add support for the merged flavor keep file
 //            it.mergedFlavor.multiDexKeepProguard
@@ -69,10 +73,28 @@ open class RedexTask: Exec() {
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
 
+
+        if (dlRedex != null && !dlRedex.exists()) {
+            throw FileNotFoundException(
+                "Could not find file at path: " +
+                dlRedex.absolutePath)
+        }
+        redex = dlRedex?.absolutePath ?: "redex"
+
         if (passes != null && configFile != null) {
             throw IllegalArgumentException(
                 "Cannot specify both passes and configFile");
         }
+    }
+
+    private fun findFile(name : String, dir : File = project.projectDir) : File {
+        val file = File(dir, name)
+        if (!file.exists()) {
+            throw FileNotFoundException(
+                "Could not find file at path: " +
+                file.absolutePath)
+        }
+        return file
     }
 
     override fun exec() {
@@ -139,7 +161,7 @@ open class RedexTask: Exec() {
         inputFile = unredexed
 
         args("-o", "$outputFile", "$inputFile")
-        executable("redex")
+        executable(redex!!)
 
         try {
             super.exec()
