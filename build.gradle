@@ -35,6 +35,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     compile 'com.google.code.gson:gson:2.8.0'
     compile 'com.github.kittinunf.fuel:fuel:1.11.0'
+    compile 'com.github.kittinunf.result:result:1.2.0'
 }
 
 task wrapper(type: Wrapper) {
