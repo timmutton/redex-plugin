@@ -10,7 +10,9 @@ import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.ByteArrayOutputStream
 import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.result.Result
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import com.google.gson.JsonElement
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
@@ -40,15 +42,12 @@ open class RedexDownloadTask : DefaultTask() {
         }
         if (!redex.exists()) {
             // Only download if we don't already have it
-            download(url, redex)
+            downloadFile(url, redex)
             redex.setExecutable(true)
         }
     }
 
-    // if dest is null, return the data
-    // if dest is not null, write it to dest
-    private fun download(url : String, dest : File?) : ByteArray? {
-        var output : ByteArray? = null
+    private fun downloadFile(url : String, dest : File) {
         val (_,_, result) = Fuel.get(url).response()
         val (data : ByteArray?, error) = result
         if (error != null) {
@@ -57,12 +56,19 @@ open class RedexDownloadTask : DefaultTask() {
         if (data == null) {
             throw IOException("No data from download")
         }
-        if (dest == null) {
-            output = data
-        } else {
-            dest.writeBytes(data)
+        dest.writeBytes(data)
+    }
+
+    private fun downloadJson(url : String) : JsonElement {
+        val (_,_, result) = Fuel.get(url).responseString()
+        val (data : String?, error) = result
+        if (error != null) {
+            throw error
         }
-        return output
+        if (data == null) {
+            throw IOException("No data from download")
+        }
+        return JsonParser().parse(data)
     }
 
     // Returns the file where the redex binary will be placed
@@ -70,7 +76,6 @@ open class RedexDownloadTask : DefaultTask() {
     //
     // If we're on an unsupported platform, print to stderr and fallback
     // to finding redex on the PATH
-    data class Pair<T1, T2>(val first : T1, val second : T2)
     fun getRedexExecutableFile() : Pair<File?, String?> {
         val tag = if (requestedVersion == "latest") getLatestRedexTag()
                   else requestedVersion
@@ -83,23 +88,20 @@ open class RedexDownloadTask : DefaultTask() {
         return Pair(null, null)
     }
 
-    // releases/latest is a webpage for the most recent release
-    // of redex. Search through the html for the name of the
-    // tag of this release.
+    // Use the github api to find the tag name of the most recent release
     private fun getLatestRedexTag() : String {
-        val latest = "https://github.com/facebook/redex/releases/latest"
-        val input = download(latest, null)!!.toString(Charset.defaultCharset())
-        val pattern = Pattern.compile(
-            "/facebook/redex/releases/tag/(v\\d+\\.\\d+\\.\\d+)")
-        val matcher = pattern.matcher(input)
-        matcher.find()
-        return matcher.group(1)
+        val releasesUrl = "https://api.github.com/repos/facebook/redex/releases"
+        val releases = downloadJson(releasesUrl)
+
+        // more recent releases are near the beginning
+        val latest = releases.getAsJsonArray().get(0).getAsJsonObject()
+        return latest.get("tag_name").getAsString()
     }
 
     // get a string like <os>_<architecture> of the current machine
     fun getOS() : String? {
         if (Os.isFamily(Os.FAMILY_UNIX)) {
-            // TODO support other architectures (32bit, non intel, etc.)
+            // TODO support other architectures (32bit, non x86, etc.)
             return "linux_x86_64"
         } else if (Os.isFamily(Os.FAMILY_MAC)) {
             return "macos_x86_64"

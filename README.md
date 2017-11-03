@@ -27,7 +27,7 @@ apply plugin: 'redex'
 // These are example arguments, fill them with your specific arguments
 redex {
     // see github.com/facebook/redex/blob/stable/config/default.config
-    configFile = 'redex.config'
+    configFile = new File('redex.config')
 
     // 'latest' downloads the most recent release of redex (recommended)
     // `null` does not download redex at all. Assumes `redex` is in PATH
@@ -38,11 +38,12 @@ redex {
     // `passes` is shorthand for a pass list instead of a config file
     // passes = ['ReBindRefsPass', ..., 'ShortenSrcStringsPass']
 
-    proguardConfigFiles = ['common_proguard.pro', 'my_app_proguard.pro']
-    proguardMapFile = 'proguard_map.txt'
-    keepFile = 'keep.txt'
+    proguardConfigFiles = [new File('common_proguard.pro'),
+                           new File('my_app_proguard.pro')]
+    proguardMapFile = new File('proguard_map.txt')
+    keepFile = new File('keep.txt')
 
-    jarFiles = ['lib1.jar', 'lib2.jar']
+    jarFiles = [new File('lib1.jar'), new File('lib2.jar')]
     otherArgs = '' // any other command line options to `redex`
 
     // see `redex --help` for details on these arguments

@@ -40,18 +40,18 @@ open class RedexTask: Exec() {
     fun initialise(variant: ApplicationVariant, extension: RedexExtension, dlRedex : File?) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
 
-        configFile = extension.configFile?.let { s -> findFile(s) }
-        proguardConfigFiles = extension.proguardConfigFiles?.map{ s -> findFile(s) }
+        configFile = extension.configFile
+        proguardConfigFiles = extension.proguardConfigFiles
         /*?: variant.let {
             val proguardFiles = it.buildType.proguardFiles.toMutableList()
             proguardFiles.addAll(it.mergedFlavor.proguardFiles)
             proguardFiles
         }*/
 
-        proguardMapFile = extension.proguardMapFile?.let { s -> findFile(s) }
+        proguardMapFile = extension.proguardMapFile
         /*?: variant.mappingFile*/
-        jarFiles = extension.jarFiles?.map { s -> findFile(s) }
-        keepFile = extension.keepFile?.let { s -> findFile(s) }
+        jarFiles = extension.jarFiles
+        keepFile = extension.keepFile
         /*?: variant.let {
             it.buildType.multiDexKeepProguard
             // TODO: add support for the merged flavor keep file
@@ -79,16 +79,6 @@ open class RedexTask: Exec() {
             throw IllegalArgumentException(
                 "Cannot specify both passes and configFile");
         }
-    }
-
-    private fun findFile(name : String, dir : File = project.projectDir) : File {
-        val file = File(dir, name)
-        if (!file.exists()) {
-            throw FileNotFoundException(
-                "Could not find file at path: " +
-                file.absolutePath)
-        }
-        return file
     }
 
     override fun exec() {
