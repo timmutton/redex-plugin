@@ -23,17 +23,29 @@ buildscript {
 apply plugin: 'com.android.application'
 apply plugin: 'redex'
 
-// Optional: configure redex command line arguments
+// Optional: configure redex arguments
+// These are example arguments, fill them with your specific arguments
 redex {
-    // These are example arguments, fill them with your specific arguments
-    configFile = 'redex.config'
+    // see github.com/facebook/redex/blob/stable/config/default.config
+    configFile = new File('redex.config')
+
+    // 'latest' downloads the most recent release of redex (recommended)
+    // `null` does not download redex at all. Assumes `redex` is in PATH
+    // Any other version string will download that specific version of redex
+    // from github.com/facebook/redex/releases/tag/<version>
+    version = 'latest'
+
     // `passes` is shorthand for a pass list instead of a config file
     // passes = ['ReBindRefsPass', ..., 'ShortenSrcStringsPass']
-    proguardConfigFiles = ['common_proguard.pro', 'my_app_proguard.pro']
-    proguardMapFile = 'proguard_map.txt'
-    keepFile = 'keep.txt'
-    jarFiles = ['lib1.jar', 'lib2.jar']
+
+    proguardConfigFiles = [new File('common_proguard.pro'),
+                           new File('my_app_proguard.pro')]
+    proguardMapFile = new File('proguard_map.txt')
+    keepFile = new File('keep.txt')
+
+    jarFiles = [new File('lib1.jar'), new File('lib2.jar')]
     otherArgs = '' // any other command line options to `redex`
+
     // see `redex --help` for details on these arguments
 }
 

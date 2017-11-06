@@ -10,6 +10,7 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.InputFile
 import org.gradle.process.internal.ExecException
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.FileWriter
 import java.lang.IllegalArgumentException
 import java.nio.file.Files
@@ -29,25 +30,29 @@ open class RedexTask: Exec() {
     private var passes: List<String>? = null
     private var showStats: Boolean = true
     private var sdkDirectory: File? = null
+    private var redex : String? = null
 
     @InputFile
     private lateinit var inputFile: File
 
     @Suppress("UNCHECKED_CAST")
     // Must use DSL to instantiate class, which means I cant pass variant as a constructor argument
-    fun initialise(variant: ApplicationVariant, extension: RedexExtension) {
+    fun initialise(variant: ApplicationVariant, extension: RedexExtension, dlRedex : File?) {
         description = "Run Redex tool on your ${variant.name.capitalize()} apk"
 
         configFile = extension.configFile
-        proguardConfigFiles = extension.proguardConfigFiles /*?: variant.let {
+        proguardConfigFiles = extension.proguardConfigFiles
+        /*?: variant.let {
             val proguardFiles = it.buildType.proguardFiles.toMutableList()
             proguardFiles.addAll(it.mergedFlavor.proguardFiles)
             proguardFiles
         }*/
 
-        proguardMapFile = extension.proguardMapFile /*?: variant.mappingFile*/
+        proguardMapFile = extension.proguardMapFile
+        /*?: variant.mappingFile*/
         jarFiles = extension.jarFiles
-        keepFile = extension.keepFile /*?: variant.let {
+        keepFile = extension.keepFile
+        /*?: variant.let {
             it.buildType.multiDexKeepProguard
             // TODO: add support for the merged flavor keep file
 //            it.mergedFlavor.multiDexKeepProguard
@@ -67,6 +72,8 @@ open class RedexTask: Exec() {
 
         val output = variant.outputs.first { it.outputFile.name.endsWith(".apk") }
         inputFile = output.outputFile
+
+        redex = dlRedex?.absolutePath ?: "redex"
 
         if (passes != null && configFile != null) {
             throw IllegalArgumentException(
@@ -138,7 +145,7 @@ open class RedexTask: Exec() {
         inputFile = unredexed
 
         args("-o", "$outputFile", "$inputFile")
-        executable("redex")
+        executable(redex!!)
 
         try {
             super.exec()

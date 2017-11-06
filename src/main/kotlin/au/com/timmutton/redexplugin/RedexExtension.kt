@@ -17,4 +17,10 @@ open class RedexExtension(appExtension: AppExtension) {
     var showStats: Boolean = true
 
     val sdkDirectory: File? = appExtension.sdkDirectory
+
+    // null means don't download
+    // latest means the most recent redex release
+    // any other string is a tag name in
+    // github.com/facebook/redex/releases/tag/<tag>
+    var version : String? = "latest"
 }
