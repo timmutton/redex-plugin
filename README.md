@@ -4,10 +4,7 @@ A Gradle plugin that allows you to use Facebook's Redex tool as part of your
 build process
 
 ## Usage
-Before you can use this plugin, you must install the Redex tool. Instructions
-for installing Redex can be found at https://github.com/facebook/redex
-
-Once Redex is installed, add the following to your `build.gradle`:
+Add the following to your `build.gradle`:
 
 ```groovy
 buildscript {
@@ -16,7 +13,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.0.0'
-        classpath 'au.com.timmutton:redex:1.4.0'
+        classpath 'au.com.timmutton:redex:1.5.0'
     }
 }
 
